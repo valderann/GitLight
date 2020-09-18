@@ -1,0 +1,114 @@
+﻿<Window x:Class="GitLite.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:self="clr-namespace:GitLite"
+        xmlns:data="clr-namespace:GitLite.Repositories.Data"
+        mc:Ignorable="d"
+        Title="GitLite">
+    <Window.Resources>
+        <self:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter" />
+        <self:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+        <self:BoolToFontColorConverter x:Key="BoolToFontColorConverter" />
+        <ControlTemplate x:Key="LocalChangesView" TargetType="ContentControl">
+            <ListView Loaded="lstLocalFiles_Loaded" HorizontalAlignment="Stretch" Height="100" ScrollViewer.HorizontalScrollBarVisibility="Hidden"  Name="lstLocalFiles" VerticalAlignment="Top">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="Status" Width="50" DisplayMemberBinding="{Binding Status}"/>
+                        <GridViewColumn Header="FileName" Width="600" DisplayMemberBinding="{Binding FileName}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </ControlTemplate>
+        <ControlTemplate x:Key="CommitView" TargetType="ContentControl">
+            <StackPanel VerticalAlignment="top" Margin="10,10,10,10">
+                <TextBox Text="" Name="CommitSearch"></TextBox>
+                <Button HorizontalAlignment="right">
+                    <TextBox>Search</TextBox>
+                </Button>
+                <ListView SelectionChanged="lstCommits_SelectionChanged" Height="200" HorizontalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Name="lstCommits">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Message" Width="400" DisplayMemberBinding="{Binding Message}"/>
+                            <GridViewColumn Header="Author" Width="100" DisplayMemberBinding="{Binding Author}"/>
+                            <GridViewColumn Header="Date" Width="100" DisplayMemberBinding="{Binding Date}"/>
+                            <GridViewColumn Header="Id" Width="100" DisplayMemberBinding="{Binding Id}"/>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+                <Grid VerticalAlignment="top" Height="200">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.5*"></ColumnDefinition>
+                        <ColumnDefinition Width="0.5*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <ListView Grid.Column="0" Grid.Row="0" SelectionChanged="lstFiles_SelectionChanged" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"  ScrollViewer.HorizontalScrollBarVisibility="Hidden" Name="lstFiles">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Status" Width="50" DisplayMemberBinding="{Binding Status}"/>
+                                <GridViewColumn Header="FileName" Width="600" DisplayMemberBinding="{Binding FileName}"/>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <TextBox Grid.Column="1" Grid.Row="0" Name="txtFileContent" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="auto" Margin="10,10,10,10" ScrollViewer.VerticalScrollBarVisibility="auto" FontSize="10" Foreground="DarkSlateGray">
+                    </TextBox>
+                </Grid>
+            </StackPanel>
+        </ControlTemplate>
+    </Window.Resources>
+    <Grid>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="219*"/>
+                <RowDefinition Height="242*"/>
+            </Grid.RowDefinitions>
+            <DockPanel Name="topPannel">
+                <ComboBox x:Name="cmbRepositories" HorizontalAlignment="Left" Margin="10,0,10,0" VerticalAlignment="Top" Width="225" SelectionChanged="cmbRepositories_SelectionChanged" />
+                <Button Content="Add repository" HorizontalAlignment="Left" Margin="10,0,10,0" VerticalAlignment="Top" Click="Button_Click"/>
+                <Button Content="Bash"  HorizontalAlignment="Left" Margin="10,0,10,0" VerticalAlignment="Top"  Click="Button_Click_2" />
+            </DockPanel>
+            <DockPanel Name="gitView" Visibility="Visible" Margin="0,40,0,0" Grid.RowSpan="2">
+                <DockPanel Width="300">
+                    <StackPanel Width="300" Orientation="Vertical" VerticalAlignment="Stretch">
+                        <TreeView SelectedItemChanged="lstBranches_SelectedItemChanged" ScrollViewer.HorizontalScrollBarVisibility="Hidden" Height="500" VerticalAlignment="Stretch" Name="lstBranches">
+                            <TreeView.Resources>
+                                <Style TargetType="{x:Type TreeViewItem}">
+                                    <Setter Property="IsExpanded" Value="{Binding IsNodeExpanded}">
+                                    </Setter>
+                                </Style>
+                                <HierarchicalDataTemplate DataType="{x:Type data:TreeItem}" ItemsSource="{Binding Branches}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" />
+                                        <TextBlock Text=" [" Foreground="Blue" />
+                                        <TextBlock Text="{Binding Count}" Foreground="Blue" />
+                                        <TextBlock Text="]" Foreground="Blue" />
+                                    </StackPanel>
+                                </HierarchicalDataTemplate>
+                                <DataTemplate DataType="{x:Type data:BranchItem}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Image Source="Component/Images/branch.png" Margin="0,0,0,0" />
+                                        <TextBlock ToolTip="{Binding Name}" Text="{Binding Name}" Foreground="{Binding IsTracking, Converter={StaticResource BoolToFontColorConverter}}" FontWeight="{Binding IsCurrent, Converter={StaticResource BoolToFontWeightConverter}}">
+                                            <TextBlock.ContextMenu>
+                                                <ContextMenu>
+                                                    <MenuItem Header="{Binding Name, StringFormat='Delete branch {0}'}" Click="MenuItem_Click"></MenuItem>
+                                                    <MenuItem Header="Statistics" Click="MenuItemStat_Click"></MenuItem>
+                                                </ContextMenu>
+                                            </TextBlock.ContextMenu>
+                                        </TextBlock>
+                                        <TextBlock Text="↑" Visibility="{Binding IsAhead , Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding AheadBy}" Visibility="{Binding IsAhead , Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Text="↓" Visibility="{Binding IsBehind , Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                        <TextBlock Text="{Binding BehindBy}" Visibility="{Binding IsBehind, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </TreeView.Resources>
+                        </TreeView>
+                    </StackPanel>
+                </DockPanel>
+                <DockPanel>
+                    <ContentControl Template="{StaticResource ResourceKey=CommitView}"  Name="ContentControl"></ContentControl>
+                </DockPanel>
+            </DockPanel>
+        </Grid>
+    </Grid>
+</Window>
